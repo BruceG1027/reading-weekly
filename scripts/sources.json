@@ -36,6 +36,36 @@
       "note": "补充源"
     }
   ],
+  "weread": [
+    {
+      "id": "rising",
+      "name": "微信读书 · 飙升榜",
+      "section": "hot",
+      "count": 6,
+      "note": "出版书飙升榜，页面内嵌数据，无需登录"
+    },
+    {
+      "id": "newrating_publish",
+      "name": "微信读书 · 神作榜",
+      "section": "hot",
+      "count": 6,
+      "note": "高分出版书榜"
+    },
+    {
+      "id": "all",
+      "name": "微信读书 · 总榜",
+      "section": "hot",
+      "count": 4,
+      "note": "长期热门总榜"
+    },
+    {
+      "id": "newbook",
+      "name": "微信读书 · 新书榜",
+      "section": "new",
+      "count": 6,
+      "note": "近期上架出版书"
+    }
+  ],
   "rsshub_fallback": [
     "https://rsshub.app",
     "https://rsshub.rssforever.com"
@@ -44,5 +74,7 @@
     "Hardcover Fiction",
     "Combined Print & E-Book Fiction",
     "Hardcover Nonfiction"
-  ]
+  ],
+  "hot_limit": 16,
+  "new_limit": 12
 }

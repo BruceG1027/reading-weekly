@@ -41,6 +41,7 @@ jobs:
             git push origin HEAD:${{ github.ref_name }}
           fi
 
+      # 只要周报生成成功就发信；即使「提交」因权限失败，邮件也不受牵连
       - name: 发送邮件
         if: ${{ !cancelled() && steps.generate.outcome == 'success' }}
         env:

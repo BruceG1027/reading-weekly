@@ -2,12 +2,16 @@
 # -*- coding: utf-8 -*-
 """读书周报生成器。
 
-主源：豆瓣月度热门榜网页 + 豆瓣榜单官方接口
-备源：RSSHub 的 RSS 输出
-可选：NYT Books API（需要 NYT_API_KEY）
+数据源：
+  豆瓣月度热门榜网页 + 豆瓣榜单官方接口
+  微信读书榜单页内嵌数据（飙升榜 / 神作榜 / 总榜 / 新书榜）
+  备源：RSSHub 的 RSS 输出
+  可选：NYT Books API（需要 NYT_API_KEY）
 
 产出：
   data/snapshots/<ISO周>.json   原始快照
+  data/weekly.json              最新一期结构化数据（邮件渲染用）
+  data/picks-history.json       每周两本的抽取记录，保证不重复
   reports/<ISO周>.md            周报
   LATEST.md                     最新一期
   feed.xml                      RSS 订阅源
@@ -19,7 +23,9 @@ from __future__ import annotations
 import argparse
 import html as html_lib
 import json
+import math
 import os
+import random
 import re
 import time
 import urllib.error
@@ -35,11 +41,15 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 REPORTS = ROOT / "reports"
 SNAPSHOTS = DATA / "snapshots"
+PICKS_HISTORY = DATA / "picks-history.json"
+WEEKLY_JSON = DATA / "weekly.json"
 DOUBAN_API = (
     "https://m.douban.com/rexxar/api/v2/subject_collection/{cid}/items"
     "?start=0&count={count}&mode=collection&for_mobile=1"
 )
 CHART_URL = "https://book.douban.com/chart"
+WEREAD_URL = "https://weread.qq.com/web/category/{cid}"
+WEREAD_MARKER = "window.__INITIAL_STATE__="
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -49,7 +59,6 @@ MOBILE_UA = (
     "AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
 )
 CST = timezone(timedelta(hours=8))
-ORIGIN = datetime(2026, 11, 9, tzinfo=CST)  # 启用日（周一），用于按周轮换书单
 
 
 def read_json(path: Path, default=None):
@@ -186,6 +195,78 @@ def fetch_chart(src: dict) -> list:
     return out
 
 
+def fetch_weread(src: dict) -> list:
+    """微信读书榜单：页面里 window.__INITIAL_STATE__ 已内嵌完整书单，无需登录。
+
+    newRating 是「推荐值」（882 = 88.2%），newRatingCount 是点评人数。
+    书籍详情链接用 deepLink 里的 v 参数拼 /web/reader/，已在浏览器验证可打开。
+    """
+    page = http_get(
+        WEREAD_URL.format(cid=src["id"]),
+        referer="https://weread.qq.com/",
+        timeout=20,
+    ).decode("utf-8", "replace")
+    pos = page.find(WEREAD_MARKER)
+    if pos < 0:
+        raise RuntimeError("微信读书页面没有内嵌榜单数据")
+    state, _ = json.JSONDecoder().raw_decode(page[pos + len(WEREAD_MARKER):])
+    store = state.get("categoryStoreModule") or {}
+    out = []
+    for entry in store.get("categoryBookList") or []:
+        book = entry.get("bookInfo") or {}
+        title = (book.get("title") or "").strip()
+        if not title:
+            continue
+        rating = book.get("newRating") or 0
+        score = f"{rating / 10:.1f}%" if rating else ""
+        deep = book.get("deepLink") or ""
+        vid = re.search(r"[?&]v=([^&]+)", deep)
+        url = (
+            "https://weread.qq.com/web/reader/" + vid.group(1)
+            if vid else WEREAD_URL.format(cid=src["id"])
+        )
+        out.append({
+            "title": cell(title),
+            "author": cell(book.get("author") or ""),
+            "score": score,
+            "year": cell((book.get("publishTime") or "")[:4]),
+            "press": "",
+            "url": url,
+            "type": "book",
+            "source": src["name"],
+            "votes": int(book.get("newRatingCount") or 0),
+            "category": cell(book.get("category") or ""),
+        })
+        if len(out) >= int(src["count"]):
+            break
+    return out
+
+
+def title_key(title: str) -> str:
+    """跨源去重用的书名指纹：去掉标点、空格、副标题括号内容。"""
+    s = re.sub(r"[（(].*?[)）]", "", title or "")
+    return re.sub(r"[\s\W_]+", "", s).lower()
+
+
+def mix_sources(groups: list, limit: int) -> list:
+    """各数据源按名次交错合并，保证每个源都能进榜；同名书只留第一次。"""
+    out, seen = [], set()
+    rounds = max((len(g) for g in groups), default=0)
+    for i in range(rounds):
+        for group in groups:
+            if i >= len(group):
+                continue
+            row = group[i]
+            key = title_key(row["title"])
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            out.append(row)
+            if len(out) >= limit:
+                return out
+    return out
+
+
 def fetch_rsshub(base: str, src: dict) -> list:
     """豆瓣官方接口不可用时，退到 RSSHub 的 RSS 输出。"""
     if src["section"] == "new":
@@ -233,8 +314,8 @@ def fetch_nyt(api_key: str, wanted: list) -> list:
 
 
 def collect(sources: dict, offline: bool = False):
-    """返回 (hot, new, status_rows, nyt)。"""
-    hot, new, status = [], [], []
+    """返回 (hot, new, status_rows, nyt)。各源分别取数，再交错混合，避免单一平台占满版面。"""
+    hot_groups, new_groups, status = [], [], []
     for src in sources["douban"]:
         items, state = [], "未取到"
         if offline:
@@ -260,11 +341,27 @@ def collect(sources: dict, offline: bool = False):
         if not items and state in ("官方接口", "官方网页"):
             state = "接口无图书条目"
         status.append({"name": src["name"], "count": len(items), "state": state})
-        (hot if src["section"] == "hot" else new).extend(items)
+        if items:
+            (hot_groups if src["section"] == "hot" else new_groups).append(items)
         time.sleep(0.6)
 
-    hot = dedup(hot)[:14]
-    new = dedup(new)[:10]
+    for src in sources.get("weread", []):
+        items, state = [], "未取到"
+        if offline:
+            state = "离线"
+        else:
+            try:
+                items = fetch_weread(src)
+                state = "榜单页内嵌数据"
+            except Exception:
+                state = "榜单页解析失败"
+        status.append({"name": src["name"], "count": len(items), "state": state})
+        if items:
+            (hot_groups if src["section"] == "hot" else new_groups).append(items)
+        time.sleep(0.5)
+
+    hot = mix_sources(hot_groups, int(sources.get("hot_limit", 16)))
+    new = mix_sources(new_groups, int(sources.get("new_limit", 12)))
 
     nyt = []
     api_key = os.environ.get("NYT_API_KEY", "").strip()
@@ -295,13 +392,68 @@ def latest_snapshot():
     return read_json(files[-1]) if files else None
 
 
-def pick_index(now: datetime) -> int:
-    """从启用日算起第几周，跨年连续，同一周重复运行结果一致。"""
-    return max(0, (now - ORIGIN).days // 7)
+def pool_by_quality(name: str, books: list) -> list:
+    """经典池按百大位次排序（无位次的中文经典补充排后），年度池按编辑推荐顺序。"""
+    scored = []
+    for i, book in enumerate(books):
+        rank = book.get("rank")
+        quality = 1000 - int(rank) if name == "classic" and rank else (
+            500 - i if name == "classic" else 100 - i
+        )
+        scored.append((quality, book))
+    scored.sort(key=lambda pair: -pair[0])
+    return [book for _, book in scored]
 
 
-def rotate(items: list, index: int):
-    return items[index % len(items)] if items else None
+def find_book(books: list, title: str):
+    return next((b for b in books if b.get("title") == title), None)
+
+
+def choose_pick(name: str, books: list, history: dict, week: str, exclude=()) -> dict | None:
+    ordered = pool_by_quality(name, books)
+    used = set(history["used"].get(name, []))
+    candidates = [b for b in ordered if b["title"] not in used and b["title"] not in exclude]
+    if not candidates:
+        # 整池抽完一轮，清空记录重新开始
+        history["used"][name] = []
+        candidates = [b for b in ordered if b["title"] not in exclude]
+    if not candidates:
+        return None
+    # 只从质量排序的前 60% 里抽，保证「高分高质量」
+    top_n = max(3, math.ceil(len(candidates) * 0.6))
+    pick = random.Random(f"{week}|{name}").choice(candidates[:top_n])
+    history["used"][name].append(pick["title"])
+    return pick
+
+
+def pick_weekly(week: str, classics: list, annual_picks: list):
+    """每周两本：高分段内确定性抽取、跨周不重复、两本互不相同、同周重跑结果一致。"""
+    history = read_json(PICKS_HISTORY, {}) or {}
+    history.setdefault("weeks", {})
+    history.setdefault("used", {})
+    for key in ("classic", "annual"):
+        history["used"].setdefault(key, [])
+
+    saved = history["weeks"].get(week)
+    if saved:
+        classic = find_book(classics, saved.get("classic", ""))
+        annual = find_book(annual_picks, saved.get("annual", ""))
+        if classic and annual and classic["title"] != annual["title"]:
+            return classic, annual
+
+    classic = choose_pick("classic", classics, history, week)
+    annual = choose_pick(
+        "annual", annual_picks, history, week,
+        exclude={classic["title"]} if classic else set(),
+    )
+    history["weeks"][week] = {
+        "classic": classic["title"] if classic else "",
+        "annual": annual["title"] if annual else "",
+    }
+    for old in sorted(history["weeks"])[:-104]:
+        history["weeks"].pop(old, None)
+    write_json(PICKS_HISTORY, history)
+    return classic, annual
 
 
 def book_table(rows: list) -> str:
@@ -321,12 +473,8 @@ def book_table(rows: list) -> str:
 
 
 def render_markdown(week: str, now: datetime, hot: list, new: list, status: list,
-                    nyt: list, classics: dict, annual: dict, used_snapshot: bool) -> str:
-    index = pick_index(now)
-    classic = rotate(classics["books"], index)
-    annual_pick = rotate(annual["picks"], index)
-    month = now.month
-
+                    nyt: list, classic, annual_pick, annual: dict,
+                    used_snapshot: bool) -> str:
     lines = [
         f"# 读书周报 {week}",
         "",
@@ -337,6 +485,25 @@ def render_markdown(week: str, now: datetime, hot: list, new: list, status: list
     if used_snapshot:
         lines += ["> 本周全部数据源未取到，以下内容来自上一次快照。", ""]
 
+    # 一、经典池 · 本周一本
+    if classic:
+        rank = f" · 第 {classic['rank']} 位" if classic.get("rank") else ""
+        lines += [
+            "## 经典池 · 本周一本", "",
+            f"[{classic['title']}]({search_link(classic['title'])})　|　{classic['author']}　|　"
+            f"{classic['year']}　|　{classic['source']}{rank}",
+            "",
+        ]
+    # 二、年度池 · 本周一本
+    if annual_pick:
+        lines += [
+            "## 年度池 · 本周一本", "",
+            f"[{annual_pick['title']}]({search_link(annual_pick['title'])})　|　"
+            f"{annual_pick['author']}　|　{annual_pick['source']}",
+            "",
+        ]
+
+    # 三、四、榜单
     lines += ["## 本周热门", "", book_table(hot), "## 新书速递", "", book_table(new)]
 
     if nyt:
@@ -349,32 +516,18 @@ def render_markdown(week: str, now: datetime, hot: list, new: list, status: list
             } for b in group["books"]]
             lines += [book_table(rows), ""]
 
+    # 五、年度榜单
     lines += ["## 年度榜单", "", "| 榜单 | 主办 | 发布月份 | 起始 |", "| --- | --- | --- | --- |"]
     for item in annual["lists"]:
         name = f"[{item['name']}]({item['url']})" if item.get("url") else item["name"]
         months = "/".join(str(m) for m in item["months"])
         lines.append(f"| {name} | {item['org']} | {months} 月 | {item['since']} |")
     lines.append("")
-    due = [x["name"] for x in annual["lists"] if month in x["months"]]
+    due = [x["name"] for x in annual["lists"] if now.month in x["months"]]
     if due:
         lines += [f"本月发布：{'、'.join(due)}。", ""]
 
-    if classic:
-        rank = f" · 第 {classic['rank']} 位" if classic.get("rank") else ""
-        lines += [
-            "## 经典池 · 本周一本", "",
-            f"[{classic['title']}]({search_link(classic['title'])})　|　{classic['author']}　|　"
-            f"{classic['year']}　|　{classic['source']}{rank}",
-            "",
-        ]
-    if annual_pick:
-        lines += [
-            "## 年度一本", "",
-            f"[{annual_pick['title']}]({search_link(annual_pick['title'])})　|　"
-            f"{annual_pick['author']}　|　{annual_pick['source']}",
-            "",
-        ]
-
+    # 六、数据状态
     lines += ["## 数据状态", "", "| 数据源 | 条数 | 状态 |", "| --- | --- | --- |"]
     for row in status:
         lines.append(f"| {row['name']} | {row['count']} | {row['state']} |")
@@ -402,7 +555,7 @@ def render_feed(repo_url: str) -> str:
 
         meta = body.split("\n")[2].strip() if len(body.split("\n")) > 2 else ""
         classic_m = re.search(r"## 经典池[^\n]*\n\n([^\n]+)", body)
-        annual_m = re.search(r"## 年度一本[^\n]*\n\n([^\n]+)", body)
+        annual_m = re.search(r"## (?:年度池|年度一本)[^\n]*\n\n([^\n]+)", body)
         pieces = [meta]
         if classic_m:
             pieces.append("经典 " + plain(classic_m.group(1)))
@@ -489,17 +642,42 @@ def main():
             "status": status,
         })
 
-    md = render_markdown(week, now, hot, new, status, nyt, classics, annual, used_snapshot)
+    classic, annual_pick = pick_weekly(
+        week, classics.get("books", []), annual.get("picks", [])
+    )
+    md = render_markdown(
+        week, now, hot, new, status, nyt, classic, annual_pick, annual, used_snapshot
+    )
     write_text(REPORTS / f"{week}.md", md)
     write_text(ROOT / "LATEST.md", md)
     write_text(ROOT / "feed.xml", render_feed(os.environ.get("REPO_URL", "").strip()))
 
+    # 结构化数据：邮件卡片渲染直接用它，不必再反解 Markdown
+    due = [x["name"] for x in annual.get("lists", []) if now.month in x["months"]]
+    write_json(WEEKLY_JSON, {
+        "week": week,
+        "generated_at": now.strftime("%Y-%m-%d %H:%M"),
+        "counts": {"hot": len(hot), "new": len(new)},
+        "used_snapshot": used_snapshot,
+        "picks": {
+            "classic": dict(classic, url=search_link(classic["title"])) if classic else None,
+            "annual": dict(annual_pick, url=search_link(annual_pick["title"])) if annual_pick else None,
+        },
+        "hot": hot,
+        "new": new,
+        "nyt": nyt,
+        "annual_lists": annual.get("lists", []),
+        "due": due,
+        "status": status,
+    })
+
     print(f"周报 {week}：热门 {len(hot)} 本，新书 {len(new)} 本")
+    print(f"  经典池：{classic['title'] if classic else '—'}")
+    print(f"  年度池：{annual_pick['title'] if annual_pick else '—'}")
     for row in status:
         print(f"  {row['name']}: {row['count']} 条 / {row['state']}")
     if args.notify:
-        index = pick_index(now)
-        notify(week, hot, new, rotate(classics["books"], index), rotate(annual["picks"], index))
+        notify(week, hot, new, classic, annual_pick)
 
 
 if __name__ == "__main__":
