@@ -1,6 +1,6 @@
 {
   "week": "2026-W46",
-  "generated_at": "2026-11-12T15:14:51.074438+08:00",
+  "generated_at": "2026-11-12T15:53:04.470820+08:00",
   "hot": [
     {
       "title": "落在我身上的雨",
@@ -47,13 +47,13 @@
     {
       "title": "荣枯鉴（全析全译版）",
       "author": "[五代]冯道",
-      "score": "90.2%",
+      "score": "90.3%",
       "year": "2026",
       "press": "",
       "url": "https://weread.qq.com/web/reader/db132320813abb9a1g016010",
       "type": "book",
       "source": "微信读书 · 神作榜",
-      "votes": 1400,
+      "votes": 1411,
       "category": "哲学宗教-东方哲学"
     },
     {
@@ -65,7 +65,7 @@
       "url": "https://weread.qq.com/web/reader/ce032b305a9bc1ce0b0dd2a",
       "type": "book",
       "source": "微信读书 · 总榜",
-      "votes": 295953,
+      "votes": 295954,
       "category": "精品小说-科幻小说"
     },
     {
@@ -173,7 +173,7 @@
       "url": "https://weread.qq.com/web/reader/61a325e0813abb6ccg0107ad",
       "type": "book",
       "source": "微信读书 · 飙升榜",
-      "votes": 1476,
+      "votes": 1478,
       "category": "文学-纪实文学"
     }
   ],
@@ -207,7 +207,7 @@
       "url": "https://weread.qq.com/web/reader/55132b50813abc3a3g013c9e",
       "type": "book",
       "source": "微信读书 · 新书榜",
-      "votes": 302,
+      "votes": 303,
       "category": "个人成长-励志成长"
     },
     {
@@ -239,7 +239,7 @@
       "url": "https://weread.qq.com/web/reader/14f32490813abc33dg012367",
       "type": "book",
       "source": "微信读书 · 新书榜",
-      "votes": 162,
+      "votes": 163,
       "category": "医学健康-健康"
     },
     {
