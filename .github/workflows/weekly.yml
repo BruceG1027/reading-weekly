@@ -1,0 +1,51 @@
+name: 读书周报
+
+on:
+  schedule:
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reading-weekly
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 生成周报
+        id: generate
+        env:
+          NYT_API_KEY: ${{ secrets.NYT_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: python scripts/build_report.py --notify
+
+      - name: 提交
+        id: commit
+        run: |
+          git config user.name "reading-bot"
+          git config user.email "reading-bot@users.noreply.github.com"
+          git add -A
+          if ! git diff --staged --quiet; then
+            git commit -m "周报 $(date -u +%G-W%V)"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+
+      - name: 发送邮件
+        if: ${{ !cancelled() && steps.generate.outcome == 'success' }}
+        env:
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: python scripts/send_mail.py
