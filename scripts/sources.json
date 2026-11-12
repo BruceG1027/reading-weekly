@@ -1,0 +1,48 @@
+{
+  "douban": [
+    {
+      "id": "chart",
+      "name": "月度热门图书榜",
+      "section": "hot",
+      "count": 10,
+      "note": "book.douban.com/chart，月度更新"
+    },
+    {
+      "id": "book_fiction",
+      "name": "热门图书 · 虚构",
+      "section": "hot",
+      "count": 10,
+      "note": "每周一更新"
+    },
+    {
+      "id": "book_nonfiction",
+      "name": "热门图书 · 非虚构",
+      "section": "hot",
+      "count": 10,
+      "note": "每周一更新"
+    },
+    {
+      "id": "new_book_all",
+      "name": "新书速递",
+      "section": "new",
+      "count": 10,
+      "note": "每周更新 20 种，此处取前 10"
+    },
+    {
+      "id": "new_book_fiction",
+      "name": "新书速递 · 小说",
+      "section": "new",
+      "count": 5,
+      "note": "补充源"
+    }
+  ],
+  "rsshub_fallback": [
+    "https://rsshub.app",
+    "https://rsshub.rssforever.com"
+  ],
+  "nyt_lists": [
+    "Hardcover Fiction",
+    "Combined Print & E-Book Fiction",
+    "Hardcover Nonfiction"
+  ]
+}

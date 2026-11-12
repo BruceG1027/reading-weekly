@@ -1,0 +1,31 @@
+{
+  "note": "经典池。rank 为《世界报》20 世纪百大中的位次；无 rank 的条目为中文经典补充。每周按 ISO 周数确定性抽取一本。",
+  "books": [
+    { "title": "局外人", "author": "阿尔贝·加缪", "year": "1942", "source": "Le Monde 20 世纪百大", "rank": 1 },
+    { "title": "追忆似水年华", "author": "马塞尔·普鲁斯特", "year": "1913-1927", "source": "Le Monde 20 世纪百大", "rank": 2 },
+    { "title": "审判", "author": "弗兰兹·卡夫卡", "year": "1925", "source": "Le Monde 20 世纪百大", "rank": 3 },
+    { "title": "小王子", "author": "安托万·德·圣埃克苏佩里", "year": "1943", "source": "Le Monde 20 世纪百大", "rank": 4 },
+    { "title": "人的境况", "author": "安德烈·马尔罗", "year": "1933", "source": "Le Monde 20 世纪百大", "rank": 5 },
+    { "title": "愤怒的葡萄", "author": "约翰·斯坦贝克", "year": "1939", "source": "Le Monde 20 世纪百大", "rank": 7 },
+    { "title": "丧钟为谁而鸣", "author": "欧内斯特·海明威", "year": "1940", "source": "Le Monde 20 世纪百大", "rank": 8 },
+    { "title": "第二性", "author": "西蒙娜·德·波伏瓦", "year": "1949", "source": "Le Monde 20 世纪百大", "rank": 11 },
+    { "title": "等待戈多", "author": "塞缪尔·贝克特", "year": "1952", "source": "Le Monde 20 世纪百大", "rank": 12 },
+    { "title": "玫瑰的名字", "author": "翁贝托·艾柯", "year": "1980", "source": "Le Monde 20 世纪百大", "rank": 14 },
+    { "title": "美丽新世界", "author": "阿道司·赫胥黎", "year": "1932", "source": "Le Monde 20 世纪百大", "rank": 20 },
+    { "title": "一九八四", "author": "乔治·奥威尔", "year": "1949", "source": "Le Monde 20 世纪百大", "rank": 22 },
+    { "title": "百年孤独", "author": "加西亚·马尔克斯", "year": "1967", "source": "Le Monde 20 世纪百大", "rank": 33 },
+    { "title": "飘", "author": "玛格丽特·米切尔", "year": "1936", "source": "Le Monde 20 世纪百大", "rank": 37 },
+    { "title": "魔山", "author": "托马斯·曼", "year": "1924", "source": "Le Monde 20 世纪百大", "rank": 39 },
+    { "title": "了不起的盖茨比", "author": "F.S. 菲茨杰拉德", "year": "1925", "source": "Le Monde 20 世纪百大", "rank": 45 },
+    { "title": "西西弗神话", "author": "阿尔贝·加缪", "year": "1942", "source": "加缪随笔（补充）" },
+    { "title": "红楼梦", "author": "曹雪芹", "year": "1791", "source": "中文经典（补充）" },
+    { "title": "呐喊", "author": "鲁迅", "year": "1923", "source": "中文经典（补充）" },
+    { "title": "围城", "author": "钱锺书", "year": "1947", "source": "中文经典（补充）" },
+    { "title": "边城", "author": "沈从文", "year": "1934", "source": "中文经典（补充）" },
+    { "title": "骆驼祥子", "author": "老舍", "year": "1936", "source": "中文经典（补充）" },
+    { "title": "万历十五年", "author": "黄仁宇", "year": "1979", "source": "中文经典（补充）" },
+    { "title": "活着", "author": "余华", "year": "1993", "source": "中文经典（补充）" },
+    { "title": "三体", "author": "刘慈欣", "year": "2006", "source": "中文经典（补充）" },
+    { "title": "史记", "author": "司马迁", "year": "前 91", "source": "中文经典（补充）" }
+  ]
+}

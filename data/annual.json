@@ -1,0 +1,26 @@
+{
+  "note": "年度榜单目录与 2025 年度代表作。months 为通常发布月份，用于周报里的发布提示。",
+  "lists": [
+    { "name": "深圳读书月 年度十大好书", "org": "深圳读书月组委会", "months": [11], "since": "2006", "url": "https://www.sz.gov.cn/" },
+    { "name": "豆瓣年度读书榜单", "org": "豆瓣读书", "months": [12], "since": "2011", "url": "https://book.douban.com/" },
+    { "name": "中华读书报 年度十大好书 / 百佳", "org": "中华读书报", "months": [12], "since": "1990s", "url": "https://epaper.gmw.cn/zhdsb/" },
+    { "name": "新京报书评周刊 年度阅读推荐", "org": "新京报", "months": [12, 1], "since": "2003", "url": "https://www.bjnews.com.cn/" },
+    { "name": "亚洲周刊 中文十大好书", "org": "亚洲周刊", "months": [12, 1], "since": "2004", "url": "" },
+    { "name": "Goodreads Choice Awards", "org": "Goodreads 读者票选", "months": [12], "since": "2009", "url": "https://www.goodreads.com/choiceawards" },
+    { "name": "NYT 100 Notable Books / 10 Best Books", "org": "纽约时报书评", "months": [12], "since": "2004", "url": "https://www.nytimes.com/books/" },
+    { "name": "文津图书奖", "org": "国家图书馆", "months": [4], "since": "2004", "url": "https://www.nlc.cn/" },
+    { "name": "中国好书（年度 / 月度）", "org": "中国图书评论学会", "months": [4], "since": "2014", "url": "" }
+  ],
+  "picks": [
+    { "title": "九诗心", "author": "黄晓丹", "source": "豆瓣 2025 年度读书榜单" },
+    { "title": "要有光", "author": "梁鸿", "source": "豆瓣 2025 年度图书 社会·纪实" },
+    { "title": "暗斗：一个书生的文化抗战", "author": "吴真", "source": "中华读书报 2025 十大好书 / 深圳读书月 2025 十大好书" },
+    { "title": "我是寨子里长大的女孩", "author": "扎十一惹", "source": "深圳读书月 2025 年度十大好书" },
+    { "title": "哲学家的最后一课", "author": "朱锐", "source": "深圳读书月 2025 年度十大好书" },
+    { "title": "好天气", "author": "苏童", "source": "亚洲周刊 2025 中文十大好书（小说类）" },
+    { "title": "人间广厦", "author": "陈彦", "source": "2025 年度中国好书" },
+    { "title": "满世界寻找敦煌", "author": "荣新江", "source": "第二十届文津图书" },
+    { "title": "My Friends", "author": "Fredrik Backman", "source": "Goodreads Choice Awards 2025 最佳小说" },
+    { "title": "The Loneliness of Sonia and Sunny", "author": "Kiran Desai", "source": "NYT 2025 年度十大好书" }
+  ]
+}
